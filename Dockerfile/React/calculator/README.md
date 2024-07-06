@@ -1,26 +1,6 @@
-Calculator
----
-<img src="Logotype primary.png" width="60%" height="60%" />
-
-Created with *create-react-app*. See the [full create-react-app guide](https://github.com/facebookincubator/create-react-app/blob/master/packages/react-scripts/template/README.md).
-
+# while creating the dockerfile, i had used the version 14 instead of latest as some files were not loaded such as yarn.lock.
+# simply copied all files of react. 
+for react, the main copies were
+package.json, src, public 
 
 
-Try It
----
-
-[ahfarmer.github.io/calculator](https://ahfarmer.github.io/calculator/)
-
-
-
-Install
----
-
-`npm install`
-
-
-
-Usage
----
-
-`npm start`
