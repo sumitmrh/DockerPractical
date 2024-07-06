@@ -8,3 +8,6 @@ Reference for using others git and open shared projects.
 -- Nginx 
        -- https://www.free-css.com/free-css-templates
        
+-- PROJECT:
+	-- Chat React, nodejs and docker. 
+        -- https://dev.to/koladev/websocket-with-react-nodejs-and-docker-building-a-chat-application-3447
