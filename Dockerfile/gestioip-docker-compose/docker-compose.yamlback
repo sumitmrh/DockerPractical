@@ -1,13 +1,9 @@
-version: "3.8"
+version: "3.3"
 
 services:
-
   gip-mysql:
     image: mysql:5
     container_name: gip-mysql
-    networks:
-      gip-net:
-        ipv4_address: ${MYSQL_IP}
     command: --default-authentication-plugin=mysql_native_password
     restart: always
     environment:
@@ -16,15 +12,12 @@ services:
       MYSQL_USER: ${DB_USER}
       MYSQL_PASSWORD: ${DB_PASSWORD}
     volumes:
-        - ./mysql:/docker-entrypoint-initdb.d
-        - ${DB_DATA_DIR}:/var/lib/mysql
+      - ./mysql:/docker-entrypoint-initdb.d
+      - ${DB_DATA_DIR}:/var/lib/mysql
 
   gip:
     image: gestioip/gestioip:3570
     container_name: gip
-    networks:
-      gip-net:
-        ipv4_address: ${GIP_IP}
     restart: always
     environment:
       DB_HOST: ${DB_HOST}
@@ -38,16 +31,99 @@ services:
       USE_SSL: ${USE_SSL}
       SERVER_NAME: ${SERVER_NAME}
     volumes:
-        - ./apache/certs:/etc/apache2/ssl/certs
-        - ./apache/keys:/etc/apache2/ssl/keys
-        - ./apache/conf:/usr/share/gestioip/etc/apache
+      - ./apache/certs:/etc/apache2/ssl/certs
+      - ./apache/keys:/etc/apache2/ssl/keys
+      - ./apache/conf:/usr/share/gestioip/etc/apache
     ports:
-        - ${HOST_PORT}:${CONTAINER_PORT}
+      - 80:80
 
-networks:
-  gip-net:
-    ipam:
-      driver: default
-      config:
-        - subnet: ${SUBNET}
-          gateway: ${GATEWAY}
+  prometheus:
+    image: prom/prometheus:v2.41.0
+    container_name: prometheus
+    restart: always
+    volumes:
+      - ./prometheus/config:/etc/prometheus
+      - ./prometheus/data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+    ports:
+      - 9090:9090
+
+  grafana:
+    image: grafana/grafana:9.3.6
+    container_name: grafana
+    restart: always
+    volumes:
+      - ./grafana/data:/var/lib/grafana
+      - ./grafana/config:/etc/grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+    ports:
+      - 9001:3000
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.0
+    container_name: cadvisor
+    restart: always
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    ports:
+      - 9002:9091
+
+  node-exporter:
+    image: prom/node-exporter:v1.4.0
+    container_name: node-exporter
+    restart: always
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - --path.procfs=/host/proc
+      - --path.rootfs=/rootfs
+      - --path.sysfs=/host/sys
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+    ports:
+      - 9003:9100
+    sonarqube:
+    image: sonarqube:lts-community
+    depends_on:
+      - sonar_db
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://sonar_db:5432/sonar
+      SONAR_JDBC_USERNAME: sonar
+      SONAR_JDBC_PASSWORD: sonar
+    ports:
+      - 9004:9000
+    volumes:
+      - sonarqube_conf:/opt/sonarqube/conf
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+      - sonarqube_temp:/opt/sonarqube/temp
+
+  sonar_db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: sonar
+      POSTGRES_PASSWORD: sonar
+      POSTGRES_DB: sonar
+    volumes:
+      - sonar_db:/var/lib/postgresql
+      - sonar_db_data:/var/lib/postgresql/data
+
+  volumes:
+    sonarqube_conf:
+    sonarqube_data:
+    sonarqube_extensions:
+    sonarqube_logs:
+    sonarqube_temp:
+    sonar_db:
+    sonar_db_data:
